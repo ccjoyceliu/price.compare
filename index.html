@@ -1,24 +1,283 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Price Comparison Shopper</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
-  }
-}
-</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Site Price Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 50px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            text-align: center;
+            font-size: 1.05em;
+        }
+        
+        .search-box {
+            margin-bottom: 30px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 12px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        input {
+            width: 100%;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .retailers {
+            margin-bottom: 30px;
+        }
+        
+        .retailers h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .retailer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+        
+        .retailer-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        
+        .retailer-checkbox:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+        
+        .retailer-checkbox input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .retailer-checkbox.checked {
+            background: #e7f0ff;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+        }
+        
+        button {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.secondary {
+            background: #6c757d;
+        }
+        
+        button.secondary:hover {
+            box-shadow: 0 8px 20px rgba(108, 117, 125, 0.4);
+        }
+        
+        .info {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 8px;
+            font-size: 0.95em;
+            color: #856404;
+        }
+    </style>
 </head>
-  <body class="bg-slate-900">
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+<body>
+    <div class="container">
+        <h1>🛍️ Multi-Site Price Search</h1>
+        <p class="subtitle">Search for products across multiple shopping sites instantly</p>
+        
+        <div class="search-box">
+            <label for="searchTerm">What are you looking for?</label>
+            <input type="text" id="searchTerm" placeholder="e.g., wireless headphones, laptop, running shoes..." autofocus>
+        </div>
+        
+        <div class="retailers">
+            <h3>Select Shopping Sites:</h3>
+            <div class="retailer-grid" id="retailerGrid"></div>
+        </div>
+        
+        <div class="button-group">
+            <button onclick="searchAll()">Search Selected Sites</button>
+            <button class="secondary" onclick="selectAll()">Select All</button>
+        </div>
+        
+        <div class="info">
+            💡 <strong>Tip:</strong> Each site will open in a new tab with your search results. Make sure pop-ups are allowed for this page!
+        </div>
+    </div>
+
+    <script>
+        const retailers = [
+            { name: 'Amazon', url: 'https://www.amazon.com/s?k=' },
+            { name: 'eBay', url: 'https://www.ebay.com/sch/i.html?_nkw=' },
+            { name: 'Walmart', url: 'https://www.walmart.com/search?q=' },
+            { name: 'Target', url: 'https://www.target.com/s?searchTerm=' },
+            { name: 'Best Buy', url: 'https://www.bestbuy.com/site/searchpage.jsp?st=' },
+            { name: 'Newegg', url: 'https://www.newegg.com/p/pl?d=' },
+            { name: 'AliExpress', url: 'https://www.aliexpress.com/wholesale?SearchText=' },
+            { name: 'Etsy', url: 'https://www.etsy.com/search?q=' }
+        ];
+
+        const selectedRetailers = new Set();
+
+        function initRetailers() {
+            const grid = document.getElementById('retailerGrid');
+            retailers.forEach((retailer, index) => {
+                const div = document.createElement('div');
+                div.className = 'retailer-checkbox';
+                div.innerHTML = `
+                    <input type="checkbox" id="retailer${index}" value="${index}">
+                    <label for="retailer${index}" style="cursor: pointer; margin: 0; font-weight: normal;">${retailer.name}</label>
+                `;
+                
+                const checkbox = div.querySelector('input');
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        selectedRetailers.add(index);
+                        div.classList.add('checked');
+                    } else {
+                        selectedRetailers.delete(index);
+                        div.classList.remove('checked');
+                    }
+                });
+                
+                div.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'INPUT') {
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                });
+                
+                grid.appendChild(div);
+            });
+        }
+
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach((checkbox, index) => {
+                checkbox.checked = !allChecked;
+                const div = checkbox.closest('.retailer-checkbox');
+                if (!allChecked) {
+                    selectedRetailers.add(index);
+                    div.classList.add('checked');
+                } else {
+                    selectedRetailers.clear();
+                    div.classList.remove('checked');
+                }
+            });
+        }
+
+        function searchAll() {
+            const searchTerm = document.getElementById('searchTerm').value.trim();
+            
+            if (!searchTerm) {
+                alert('Please enter a search term!');
+                return;
+            }
+            
+            if (selectedRetailers.size === 0) {
+                alert('Please select at least one shopping site!');
+                return;
+            }
+            
+            const encodedSearch = encodeURIComponent(searchTerm);
+            
+            selectedRetailers.forEach(index => {
+                const retailer = retailers[index];
+                window.open(retailer.url + encodedSearch, '_blank');
+            });
+        }
+
+        // Allow Enter key to trigger search
+        document.getElementById('searchTerm').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchAll();
+            }
+        });
+
+        // Initialize retailers on load
+        initRetailers();
+    </script>
+</body>
 </html>
